@@ -191,6 +191,15 @@ export const main = async (port: number) => {
       if (state.clientsReady.size === 2) {
         await io.to(gameId).emit("new-game", uuidv4());
         games.delete(gameId);
+        if (process.env.NODE_ENV === "production") {
+          appInsights.defaultClient.trackTrace({
+            message: `✨ New game created! [GameID: ${gameId}]`,
+          });
+        } else {
+          console.log(
+             `✨ New game created! [GameID: ${gameId}]`
+          );
+        }
       }
     });
 
@@ -220,7 +229,7 @@ export const main = async (port: number) => {
       }
     });
 
-    // Set the secret character of the disconnected socket to the placeholder
+    // Client disconnects
     socket.on("disconnect", async () => {
       if (process.env.NODE_ENV === "production") {
         appInsights.defaultClient.trackTrace({
