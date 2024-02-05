@@ -136,7 +136,7 @@ export const main = async (port: number) => {
 
     // Broadcast the revive action to all clients in the room
     socket.on("revive", async () => {
-      await socket.broadcast.to(gameId).emit("revive");   
+      await socket.broadcast.to(gameId).emit("revive");
     });
 
     socket.on("guess", async (guess: string) => {
