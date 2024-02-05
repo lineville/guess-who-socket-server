@@ -4,8 +4,10 @@ import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 import dotenv from "dotenv";
 import appInsights from "applicationinsights";
 import express from "express";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
+// TODO only allow 2 players per room
+// TODO Fix logging, to pass data more structured and less repetitive
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -82,6 +84,19 @@ export const main = async (port: number) => {
         });
       } else {
         console.log(`🚨 Invalid clientId provided`);
+      }
+      return;
+    }
+
+    const room = io.of("/").adapter.rooms.get(gameId);
+    if (room && room.size >= 2) {
+      await socket.emit("error", { message: "This game is full." });
+      if (process.env.NODE_ENV === "production") {
+        appInsights.defaultClient.trackTrace({
+          message: "🚨 Game room full",
+        });
+      } else {
+        console.log("🚨 Game room full");
       }
       return;
     }
@@ -196,9 +211,7 @@ export const main = async (port: number) => {
             message: `✨ New game created! [GameID: ${gameId}]`,
           });
         } else {
-          console.log(
-             `✨ New game created! [GameID: ${gameId}]`
-          );
+          console.log(`✨ New game created! [GameID: ${gameId}]`);
         }
       }
     });
