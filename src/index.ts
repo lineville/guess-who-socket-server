@@ -6,8 +6,6 @@ import appInsights from "applicationinsights";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 
-// TODO Fix logging, to pass data more structured and less repetitive
-
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
 
@@ -20,7 +18,7 @@ export const main = async (port: number) => {
       .setAutoCollectPerformance(true)
       .setAutoCollectExceptions(true)
       .setAutoCollectDependencies(true)
-      .setAutoCollectConsole(true)
+      .setAutoCollectConsole(true, true)
       .setUseDiskRetryCaching(true)
       .start();
   }
@@ -34,15 +32,9 @@ export const main = async (port: number) => {
 
   // Setup Socket.IO server
   const io = new Server(
-    app.listen(port, () => {
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `🚀 Server ready at http://localhost:${port}`,
-        });
-      } else {
-        console.log(`🚀 Server ready at http://localhost:${port}`);
-      }
-    })
+    app.listen(port, () =>
+      console.log(`🚀 Server running on port ${port}\n✨ http://localhost:${port} ✨`)
+    )
   );
 
   const games = new Map<string, State>();
@@ -55,48 +47,28 @@ export const main = async (port: number) => {
   io.on("connection", async (socket: Socket) => {
     const { gameId, clientId } = socket.handshake.query;
 
-    if (process.env.NODE_ENV === "production") {
-      appInsights.defaultClient.trackTrace({
-        message: `🟢 Client connected: [ID: ${clientId}] to game [${gameId}]`,
-      });
-    } else {
-      console.log(`🟢 Client connected: [ID: ${clientId}] to game [${gameId}]`);
-    }
+    console.log(
+      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}]`
+    );
 
     // Validate gameId
     if (!gameId || typeof gameId !== "string") {
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: "🚨 Invalid gameId provided",
-        });
-      } else {
-        console.log(`🚨 Invalid gameId provided`);
-      }
+      console.log(`🚨 Invalid gameId provided [GameID: ${gameId}]`);
       return;
     }
 
     // Validate clientId
     if (!clientId || typeof clientId !== "string") {
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: "🚨 Invalid clientId provided",
-        });
-      } else {
-        console.log(`🚨 Invalid clientId provided`);
-      }
+      console.log(`🚨 Invalid clientId provided [ID: ${clientId}]`);
       return;
     }
 
     const room = io.of("/").adapter.rooms.get(gameId);
     if (room && room.size >= 2) {
       await socket.emit("error", "This game is full.");
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: "🚨 Game room full",
-        });
-      } else {
-        console.log("🚨 Game room full");
-      }
+      console.log(
+        `🚨 Game room full! [GameID: ${gameId}] [ClientID: ${clientId}]`
+      );
       return;
     }
 
@@ -119,13 +91,9 @@ export const main = async (port: number) => {
       state.turn = getOpponentClientId(clientId, state);
       state.isAsking = false;
       await socket.broadcast.to(gameId).emit("ask", question);
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `❓ Client asked: ${question}`,
-        });
-      } else {
-        console.log(`❓ Client asked: ${question}`);
-      }
+      console.log(
+        `❓ Client asked: ${question} [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     // Handle an incoming answer from the client
@@ -134,13 +102,9 @@ export const main = async (port: number) => {
       state.turn = clientId;
       state.isAsking = true;
       await socket.broadcast.to(gameId).emit("answer", answer);
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `📣 Client [${clientId}] answered: ${answer}`,
-        });
-      } else {
-        console.log(`📣 Client [${clientId}] answered: ${answer}`);
-      }
+      console.log(
+        `📣 Client answered: ${answer} [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     // Broadcast the eliminate action to all clients in the room
@@ -154,39 +118,23 @@ export const main = async (port: number) => {
     });
 
     socket.on("guess", async (guess: string) => {
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `🙊 Client [ID: ${clientId}] guessed ${guess}`,
-        });
-      } else {
-        console.log(`🙊 Client [ID: ${clientId}] guessed ${guess}`);
-      }
+      console.log(
+        `🙊 Client guessed ${guess} [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
       const opponentClientId = getOpponentClientId(clientId, state);
       const opponentSecretCharacter =
         state.secretCharacters.get(opponentClientId);
 
       if (guess === opponentSecretCharacter) {
-        if (process.env.NODE_ENV === "production") {
-          appInsights.defaultClient.trackTrace({
-            message: `🎉 Client [ID: ${clientId}] guessed ${guess} correctly!`,
-          });
-        } else {
-          console.log(
-            `🎉 Client [ID: ${clientId}] guessed ${guess} correctly!`
-          );
-        }
+        console.log(
+          `🎉 Client guessed ${guess} correctly! [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
         state.winner = clientId;
         await io.to(gameId).emit("winner", clientId);
       } else {
-        if (process.env.NODE_ENV === "production") {
-          appInsights.defaultClient.trackTrace({
-            message: `😭 Client [ID: ${clientId}] guessed ${guess} incorrectly!`,
-          });
-        } else {
-          console.log(
-            `😭 Client [ID: ${clientId}] guessed ${guess} incorrectly!`
-          );
-        }
+        console.log(
+          `😭 Client guessed ${guess} incorrectly! [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
         state.turn = opponentClientId!;
         state.isAsking = true;
         await socket.broadcast.to(gameId).emit("bad-guess", guess);
@@ -205,13 +153,7 @@ export const main = async (port: number) => {
       if (state.clientsReady.size === 2) {
         await io.to(gameId).emit("new-game", uuidv4());
         games.delete(gameId);
-        if (process.env.NODE_ENV === "production") {
-          appInsights.defaultClient.trackTrace({
-            message: `✨ New game created! [GameID: ${gameId}]`,
-          });
-        } else {
-          console.log(`✨ New game created! [GameID: ${gameId}]`);
-        }
+        console.log(`✨ New game created! [GameID: ${gameId}]`);
       }
     });
 
@@ -219,39 +161,25 @@ export const main = async (port: number) => {
     io.of("/").adapter.on("join-room", async (gameId: string, _id: string) => {
       const playerCount = (await io.local.in(gameId).fetchSockets()).length;
       await io.to(gameId).emit("playerCount", playerCount);
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `🟢 Client joined: [ID: ${clientId}] to game [${gameId}]`,
-        });
-      } else {
-        console.log(`🟢 Client joined: [ID: ${clientId}] to game [${gameId}]`);
-      }
+      console.log(
+        `🟢 Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     // Update the player count when a socket leaves the room
     io.of("/").adapter.on("leave-room", async (gameId: string, _id: string) => {
       const playerCount = (await io.local.in(gameId).fetchSockets()).length;
       await io.to(gameId).emit("playerCount", playerCount);
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `🔴 Client left: [ID: ${clientId}] to game [${gameId}]`,
-        });
-      } else {
-        console.log(`🔴 Client left: [ID: ${clientId}] to game [${gameId}]`);
-      }
+      console.log(
+        `🔴 Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     // Client disconnects
     socket.on("disconnect", async () => {
-      if (process.env.NODE_ENV === "production") {
-        appInsights.defaultClient.trackTrace({
-          message: `🔴 Client disconnected: [ID: ${clientId}] from game [${gameId}]`,
-        });
-      } else {
-        console.log(
-          `🔴 Client disconnected: [ID: ${clientId}] from game [${gameId}]`
-        );
-      }
+      console.log(
+        `🔴 Client disconnected! [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
   });
 };
@@ -265,13 +193,9 @@ export const initialize = (
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
     games.set(gameId, initializeGameState(clientId));
-    if (process.env.NODE_ENV === "production") {
-      appInsights.defaultClient.trackTrace({
-        message: `🎮 Game [${gameId}] initialized `,
-      });
-    } else {
-      console.log(`🎮 Game [${gameId}] initialized `);
-    }
+    console.log(
+      `🎮 Game initialized [ClientID: ${clientId}] [GameID: ${gameId}]`
+    );
   }
 
   const state = games.get(gameId);
