@@ -121,7 +121,9 @@ export const main = async (port: number) => {
           "eliminated-count",
           state.eliminatedCharacters.get(clientId)?.size
         );
-      await socket.emit("eliminate", state.eliminatedCharacters.get(clientId));
+      await socket.emit("eliminate", [
+        ...(state.eliminatedCharacters.get(clientId) || new Set()).keys(),
+      ]);
       console.log(
         `🔫 Client eliminated: ${index} [ClientID: ${clientId}] [GameID: ${gameId}]`
       );
@@ -139,8 +141,12 @@ export const main = async (port: number) => {
           "eliminated-count",
           state.eliminatedCharacters.get(clientId)?.size
         );
-      await socket.emit("revive", state.eliminatedCharacters.get(clientId));
-      console.log(`🧟 Client revived ${index} [ClientID: ${clientId}] [GameID: ${gameId}]`)
+      await socket.emit("revive", [
+        ...(state.eliminatedCharacters.get(clientId) || new Set()).keys(),
+      ]);
+      console.log(
+        `🧟 Client revived ${index} [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     socket.on("guess", async (guess: string) => {
