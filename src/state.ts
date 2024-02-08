@@ -6,6 +6,7 @@ export default interface State {
   isAsking: boolean;
   dialogues: Message[];
   clientsReady: Set<string>;
+  eliminatedCharacters: Map<string, Set<number>>;
 }
 
 interface Message {
@@ -13,12 +14,15 @@ interface Message {
   clientId: string | null;
 }
 
-export const initializeGameState = (clientId: string): State => {
+export const createGameState = (clientId: string): State => {
   const characters = shuffleArray(ALL_CHARACTERS).slice(0, NUM_CHARACTERS);
 
   let randomIndex = Math.floor(Math.random() * NUM_CHARACTERS);
   const secretCharacters = new Map();
   secretCharacters.set(clientId, characters[randomIndex]);
+
+  const eliminatedCharacters = new Map<string, Set<number>>();
+  eliminatedCharacters.set(clientId, new Set());
 
   return {
     characters: characters,
@@ -28,6 +32,7 @@ export const initializeGameState = (clientId: string): State => {
     isAsking: true,
     dialogues: [],
     clientsReady: new Set<string>(),
+    eliminatedCharacters: eliminatedCharacters,
   };
 };
 

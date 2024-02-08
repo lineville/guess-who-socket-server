@@ -1,5 +1,5 @@
 import { Server, Socket } from "socket.io";
-import State, { initializeGameState, NUM_CHARACTERS } from "./state.js";
+import State, { createGameState, NUM_CHARACTERS } from "./state.js";
 import { useAzureSocketIO } from "@azure/web-pubsub-socket.io";
 import dotenv from "dotenv";
 import appInsights from "applicationinsights";
@@ -107,14 +107,18 @@ export const main = async (port: number) => {
       );
     });
 
-    // Broadcast the eliminate action to all clients in the room
-    socket.on("eliminate", async () => {
-      await socket.broadcast.to(gameId).emit("eliminate");
+    // Broadcast the count of eliminated to opponent, send the whole set to the client
+    socket.on("eliminate", async (index: number) => {
+      state.eliminatedCharacters.get(clientId)?.add(index);
+      await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
+      await socket.emit("eliminate", state.eliminatedCharacters.get(clientId));
     });
 
-    // Broadcast the revive action to all clients in the room
-    socket.on("revive", async () => {
-      await socket.broadcast.to(gameId).emit("revive");
+    // Broadcast the count of alive to opponent, send the whole set to the client
+    socket.on("revive", async (index: number) => {
+      state.eliminatedCharacters.get(clientId)?.delete(index);
+      await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
+      await socket.emit("revive", state.eliminatedCharacters.get(clientId));
     });
 
     socket.on("guess", async (guess: string) => {
@@ -192,7 +196,7 @@ export const initialize = (
 ): State => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
-    games.set(gameId, initializeGameState(clientId));
+    games.set(gameId, createGameState(clientId));
     console.log(
       `🎮 Game initialized [ClientID: ${clientId}] [GameID: ${gameId}]`
     );
@@ -204,6 +208,7 @@ export const initialize = (
     if (!state.secretCharacters.has(clientId)) {
       const character = generateSecretCharacter(clientId, state);
       state.secretCharacters.set(clientId, character);
+      state.eliminatedCharacters.set(clientId, new Set<number>());
 
       // Flip a coin to determine if the second client should go first
       if (Math.random() < 0.5) {
@@ -234,7 +239,7 @@ export const generateSecretCharacter = (
 
 // Get the opponent's client ID
 export const getOpponentClientId = (clientId: string, state: State): string => {
-  for (const [key, value] of state.secretCharacters.entries()) {
+  for (const [key, _value] of state.secretCharacters.entries()) {
     if (key !== clientId) {
       return key;
     }
