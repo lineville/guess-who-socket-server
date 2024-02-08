@@ -84,7 +84,7 @@ export const main = async (port: number) => {
     const secretCharacter = state.secretCharacters.get(clientId);
 
     // Send the initial game state and the secret character to the client
-    await socket.emit("init", { ...state, yourCharacter: secretCharacter, eliminatedCharacters: [...state.eliminatedCharacters.keys()] });
+    await socket.emit("init", { ...state, yourCharacter: secretCharacter, eliminatedCharacters: [...(state.eliminatedCharacters.get(clientId) || new Set()).keys()] });
     await socket.to(gameId).emit("turn", state.turn);
 
     // Handle an incoming question from the client
