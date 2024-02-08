@@ -261,7 +261,7 @@ export const generateSecretCharacter = (
   const character = state.characters[randomIndex];
 
   // If this character is already assigned, try again
-  if (state.secretCharacters.has(character)) {
+  if (new Set(state.secretCharacters.values()).has(character)) {
     return generateSecretCharacter(clientId, state);
   }
 
