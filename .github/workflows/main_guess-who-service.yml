@@ -73,6 +73,8 @@ jobs:
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
+        env:
+          SCM_DO_BUILD_DURING_DEPLOYMENT: false
         with:
           app-name: 'guess-who-service'
           slot-name: 'Production'
