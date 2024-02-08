@@ -109,14 +109,16 @@ export const main = async (port: number) => {
 
     // Broadcast the count of eliminated to opponent, send the whole set to the client
     socket.on("eliminate", async (index: number) => {
-      state.eliminatedCharacters.get(clientId)?.add(index);
+      state.eliminatedCharacters.set(clientId, (state.eliminatedCharacters.get(clientId) || new Set()).add(index));
       await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
       await socket.emit("eliminate", state.eliminatedCharacters.get(clientId));
     });
 
     // Broadcast the count of alive to opponent, send the whole set to the client
     socket.on("revive", async (index: number) => {
-      state.eliminatedCharacters.get(clientId)?.delete(index);
+      const newChars = state.eliminatedCharacters.get(clientId) || new Set<number>();
+      newChars?.delete(index);
+      state.eliminatedCharacters.set(clientId, newChars);
       await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
       await socket.emit("revive", state.eliminatedCharacters.get(clientId));
     });
