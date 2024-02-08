@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { initialize, getOpponentClientId } from "../src/index";
+import { initialize, getOpponentClientId, generateSecretCharacter } from "../src/index";
 import State, { NUM_CHARACTERS } from "../src/state";
 import { v4 as uuidv4 } from "uuid";
 
@@ -57,10 +57,9 @@ describe("generateSecretCharacters", () => {
     const clientId2 = uuidv4();
     const games = new Map<string, State>();
     const state = initialize(gameId, clientId1, games);
-    const updatedState = initialize(gameId, clientId2, games);
-
-    const character1 = updatedState.secretCharacters.get(clientId1);
-    const character2 = updatedState.secretCharacters.get(clientId2);
+    
+    const character1 = state.secretCharacters.get(clientId1);
+    const character2 = generateSecretCharacter(clientId2, state);
 
     expect(character1).to.exist;
     expect(character2).to.exist;
