@@ -33,7 +33,9 @@ export const main = async (port: number) => {
   // Setup Socket.IO server
   const io = new Server(
     app.listen(port, () =>
-      console.log(`🚀 Server running on port ${port}\n✨ http://localhost:${port} ✨`)
+      console.log(
+        `🚀 Server running on port ${port}\n✨ http://localhost:${port} ✨`
+      )
     )
   );
 
@@ -109,18 +111,36 @@ export const main = async (port: number) => {
 
     // Broadcast the count of eliminated to opponent, send the whole set to the client
     socket.on("eliminate", async (index: number) => {
-      state.eliminatedCharacters.set(clientId, (state.eliminatedCharacters.get(clientId) || new Set()).add(index));
-      await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
+      state.eliminatedCharacters.set(
+        clientId,
+        (state.eliminatedCharacters.get(clientId) || new Set()).add(index)
+      );
+      await socket.broadcast
+        .to(gameId)
+        .emit(
+          "eliminated-count",
+          state.eliminatedCharacters.get(clientId)?.size
+        );
       await socket.emit("eliminate", state.eliminatedCharacters.get(clientId));
+      console.log(
+        `🔫 Client eliminated: ${index} [ClientID: ${clientId}] [GameID: ${gameId}]`
+      );
     });
 
     // Broadcast the count of alive to opponent, send the whole set to the client
     socket.on("revive", async (index: number) => {
-      const newChars = state.eliminatedCharacters.get(clientId) || new Set<number>();
+      const newChars =
+        state.eliminatedCharacters.get(clientId) || new Set<number>();
       newChars?.delete(index);
       state.eliminatedCharacters.set(clientId, newChars);
-      await socket.broadcast.to(gameId).emit("eliminated-count", state.eliminatedCharacters.get(clientId)?.size);
+      await socket.broadcast
+        .to(gameId)
+        .emit(
+          "eliminated-count",
+          state.eliminatedCharacters.get(clientId)?.size
+        );
       await socket.emit("revive", state.eliminatedCharacters.get(clientId));
+      console.log(`🧟 Client revived ${index} [ClientID: ${clientId}] [GameID: ${gameId}]`)
     });
 
     socket.on("guess", async (guess: string) => {
