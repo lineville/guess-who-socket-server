@@ -210,12 +210,15 @@ export const initialize = (
     if (!state.secretCharacters.has(clientId)) {
       const character = generateSecretCharacter(clientId, state);
       state.secretCharacters.set(clientId, character);
-      state.eliminatedCharacters.set(clientId, new Set<number>());
 
       // Flip a coin to determine if the second client should go first
       if (Math.random() < 0.5) {
         state.turn = clientId;
       }
+    }
+
+    if (!state.eliminatedCharacters.has(clientId)) {
+      state.eliminatedCharacters.set(clientId, new Set());
     }
   }
 
