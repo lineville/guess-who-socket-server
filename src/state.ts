@@ -14,8 +14,19 @@ interface Message {
   clientId: string | null;
 }
 
-export const createGameState = (clientId: string): State => {
-  const characters = shuffleArray(ALL_CHARACTERS).slice(0, NUM_CHARACTERS);
+export const fetchCharacters = async () => {
+  const url =
+    process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
+      ? "https://guess-who-virid.vercel.app"
+      : "http://localhost:3000";
+  const response = await fetch(`${url}/api/characters`);
+  const characters = (await response.json()).characters as string[];
+  return characters;
+};
+
+export const createGameState = async (clientId: string): Promise<State> => {
+  const allCharacters = await fetchCharacters();
+  const characters = shuffleArray(allCharacters).slice(0, NUM_CHARACTERS);
 
   let randomIndex = Math.floor(Math.random() * NUM_CHARACTERS);
   const secretCharacters = new Map();
@@ -37,50 +48,6 @@ export const createGameState = (clientId: string): State => {
 };
 
 export const NUM_CHARACTERS = 24;
-
-export const ALL_CHARACTERS = [
-  "Abdul",
-  "Ang",
-  "Anna",
-  "Boris",
-  "Carl",
-  "Charles",
-  "Chimezi",
-  "Colin",
-  "Destiny",
-  "Erin",
-  "Fran",
-  "Gwen",
-  "Imani",
-  "Jada",
-  "Jing",
-  "Kai",
-  "Kevin",
-  "Kiki",
-  "Liza",
-  "Len",
-  "Lucy",
-  "Manu",
-  "Marcus",
-  "Maria",
-  "Martha",
-  "Meryl",
-  "Miles",
-  "Nonna",
-  "Paige",
-  "Pablo",
-  "Raquel",
-  "Ron",
-  "Samir",
-  "Sang",
-  "Simu",
-  "Stew",
-  "Sue",
-  "Tina",
-  "Tonto",
-  "Trae",
-  "Waru",
-];
 
 const shuffleArray = (array: Array<any>) => {
   for (let i = array.length - 1; i > 0; i--) {

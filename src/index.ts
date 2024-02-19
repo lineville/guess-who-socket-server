@@ -78,7 +78,7 @@ export const main = async (port: number) => {
     await socket.join(gameId);
 
     // Initialize the game state for this socket
-    const state = initialize(gameId, clientId, games);
+    const state = await initialize(gameId, clientId, games);
 
     // Fetch the secret character for this client
     const secretCharacter = state.secretCharacters.get(clientId);
@@ -217,14 +217,14 @@ export const main = async (port: number) => {
 };
 
 // Initialize the game state for a socket
-export const initialize = (
+export const initialize = async (
   gameId: string,
   clientId: string,
   games: Map<string, State>
-): State => {
+): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
-    games.set(gameId, createGameState(clientId));
+    games.set(gameId, await createGameState(clientId));
     console.log(
       `🎮 Game initialized [ClientID: ${clientId}] [GameID: ${gameId}]`
     );
