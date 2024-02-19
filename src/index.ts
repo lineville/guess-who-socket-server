@@ -224,7 +224,8 @@ export const initialize = async (
 ): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
-    games.set(gameId, await createGameState(clientId));
+    const allCharacters = await fetchCharacters();
+    games.set(gameId, await createGameState(clientId, allCharacters));
     console.log(
       `🎮 Game initialized [ClientID: ${clientId}] [GameID: ${gameId}]`
     );
@@ -250,6 +251,16 @@ export const initialize = async (
   }
 
   return state as State;
+};
+
+const fetchCharacters = async () => {
+  const url =
+    process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
+      ? "https://guess-who-virid.vercel.app"
+      : "http://localhost:3000";
+  const response = await fetch(`${url}/api/characters`);
+  const characters = (await response.json()).characters as string[];
+  return characters;
 };
 
 // Generate a secret character for a client

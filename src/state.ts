@@ -14,18 +14,7 @@ interface Message {
   clientId: string | null;
 }
 
-export const fetchCharacters = async () => {
-  const url =
-    process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
-      ? "https://guess-who-virid.vercel.app"
-      : "http://localhost:3000";
-  const response = await fetch(`${url}/api/characters`);
-  const characters = (await response.json()).characters as string[];
-  return characters;
-};
-
-export const createGameState = async (clientId: string): Promise<State> => {
-  const allCharacters = await fetchCharacters();
+export const createGameState = async (clientId: string, allCharacters: string[]): Promise<State> => {
   const characters = shuffleArray(allCharacters).slice(0, NUM_CHARACTERS);
 
   let randomIndex = Math.floor(Math.random() * NUM_CHARACTERS);
