@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import appInsights from "applicationinsights";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
+import { Mutex } from "async-mutex";
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -40,7 +41,8 @@ export const main = async (port: number) => {
   );
 
   const games = new Map<string, State>();
-
+  const mutex = new Mutex();
+  
   useAzureSocketIO(io, {
     hub: "Hub",
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
@@ -78,7 +80,9 @@ export const main = async (port: number) => {
     await socket.join(gameId);
 
     // Initialize the game state for this socket
-    const state = await initialize(gameId, clientId, games);
+    const state = await mutex.runExclusive(async () => {
+      return await initialize(gameId, clientId, games);
+    });
 
     // Fetch the secret character for this client
     const secretCharacter = state.secretCharacters.get(clientId);
