@@ -75,22 +75,22 @@ export const main = async (port: number) => {
       );
       return;
     }
-
-    // New client connected add them to room
-    await socket.join(gameId);
-
+    
     // Initialize the game state for this socket
     const state = await mutex.runExclusive(async () => {
       return await initialize(gameId, clientId, games);
     });
-
+    
     // Fetch the secret character for this client
     const secretCharacter = state.secretCharacters.get(clientId);
-
+    
     // Send the initial game state and the secret character to the client
     await socket.emit("init", { ...state, yourCharacter: secretCharacter, eliminatedCharacters: [...(state.eliminatedCharacters.get(clientId) || new Set()).keys()] });
     await socket.to(gameId).emit("turn", state.turn);
-
+    
+    // New client connected add them to room
+    await socket.join(gameId);
+    
     // Handle an incoming question from the client
     socket.on("ask", async (question: string) => {
       state.dialogues.push({ content: question, clientId });
