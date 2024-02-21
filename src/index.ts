@@ -42,17 +42,17 @@ export const main = async (port: number) => {
 
   const games = new Map<string, State>();
   const mutex = new Mutex();
-  
+
   useAzureSocketIO(io, {
     hub: "Hub",
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
   });
 
   io.on("connection", async (socket: Socket) => {
-    const { gameId, clientId } = socket.handshake.query;
+    const { gameId, clientId, gameType } = socket.handshake.query;
 
     console.log(
-      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}]`
+      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}] [GameType: ${gameType}]`
     );
 
     // Validate gameId
@@ -67,6 +67,12 @@ export const main = async (port: number) => {
       return;
     }
 
+    // Validate gameType
+    if (!gameType || typeof gameType !== "string") {
+      console.log(`🚨 Invalid gameType provided [Type: ${gameType}]`);
+      return;
+    }
+
     const room = io.of("/").adapter.rooms.get(gameId);
     if (room && room.size >= 2) {
       await socket.emit("error", "This game is full.");
@@ -75,22 +81,28 @@ export const main = async (port: number) => {
       );
       return;
     }
-    
+
     // Initialize the game state for this socket
     const state = await mutex.runExclusive(async () => {
-      return await initialize(gameId, clientId, games);
+      return await initialize(gameId, clientId, games, gameType);
     });
-    
+
     // Fetch the secret character for this client
     const secretCharacter = state.secretCharacters.get(clientId);
-    
+
     // Send the initial game state and the secret character to the client
-    await socket.emit("init", { ...state, yourCharacter: secretCharacter, eliminatedCharacters: [...(state.eliminatedCharacters.get(clientId) || new Set()).keys()] });
+    await socket.emit("init", {
+      ...state,
+      yourCharacter: secretCharacter,
+      eliminatedCharacters: [
+        ...(state.eliminatedCharacters.get(clientId) || new Set()).keys(),
+      ],
+    });
     await socket.to(gameId).emit("turn", state.turn);
-    
+
     // New client connected add them to room
     await socket.join(gameId);
-    
+
     // Handle an incoming question from the client
     socket.on("ask", async (question: string) => {
       state.dialogues.push({ content: question, clientId });
@@ -224,11 +236,12 @@ export const main = async (port: number) => {
 export const initialize = async (
   gameId: string,
   clientId: string,
-  games: Map<string, State>
+  games: Map<string, State>,
+  gameType: string = 'default'
 ): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
-    const allCharacters = await fetchCharacters();
+    const allCharacters = await fetchCharacters(gameType);
     games.set(gameId, await createGameState(clientId, allCharacters));
     console.log(
       `🎮 Game initialized [ClientID: ${clientId}] [GameID: ${gameId}]`
@@ -257,12 +270,12 @@ export const initialize = async (
   return state as State;
 };
 
-const fetchCharacters = async () => {
+const fetchCharacters = async (gameType: string = "default") => {
   const url =
     process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
       ? "https://guess-who-virid.vercel.app"
       : "http://localhost:3000";
-  const response = await fetch(`${url}/api/characters`);
+  const response = await fetch(`${url}/api/characters?gameType=${gameType}`);
   const characters = (await response.json()).characters as string[];
   return characters;
 };
