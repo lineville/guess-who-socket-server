@@ -237,7 +237,7 @@ export const initialize = async (
   gameId: string,
   clientId: string,
   games: Map<string, State>,
-  gameType: string = 'default'
+  gameType: string = 'pixar'
 ): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
@@ -270,7 +270,7 @@ export const initialize = async (
   return state as State;
 };
 
-const fetchCharacters = async (gameType: string = "default") => {
+const fetchCharacters = async (gameType: string = "pixar") => {
   const url =
     process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
       ? "https://guess-who-virid.vercel.app"
