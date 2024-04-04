@@ -49,10 +49,10 @@ export const main = async (port: number) => {
   });
 
   io.on("connection", async (socket: Socket) => {
-    const { gameId, clientId, gameType } = socket.handshake.query;
+    const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
 
     console.log(
-      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}] [GameType: ${gameType}]`
+      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}] [GameType: ${gameType}] [GameMode: ${gameMode}]`
     );
 
     // Validate gameId
@@ -70,6 +70,12 @@ export const main = async (port: number) => {
     // Validate gameType
     if (!gameType || typeof gameType !== "string") {
       console.log(`🚨 Invalid gameType provided [Type: ${gameType}]`);
+      return;
+    }
+
+    // Validate gameMode
+    if (!gameMode || typeof gameMode !== "string") {
+      console.log(`🚨 Invalid gameMode provided [Mode: ${gameMode}]`);
       return;
     }
 
@@ -237,7 +243,8 @@ export const initialize = async (
   gameId: string,
   clientId: string,
   games: Map<string, State>,
-  gameType: string = 'pixar'
+  gameType: string = 'pixar',
+  gameMode: string = 'multi-player'
 ): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
@@ -266,6 +273,10 @@ export const initialize = async (
       state.eliminatedCharacters.set(clientId, new Set());
     }
   }
+
+  // TODO: After the game is initialized for the real user, check if it's single player mode
+  // if it is then generate a dummy player 2 and assign a secret character to it for the AI to play as
+
 
   return state as State;
 };
