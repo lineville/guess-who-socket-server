@@ -90,7 +90,7 @@ export const main = async (port: number) => {
 
     // Initialize the game state for this socket
     const state = await mutex.runExclusive(async () => {
-      return await initialize(gameId, clientId, games, gameType);
+      return await initialize(gameId, clientId, games, gameType, gameMode);
     });
 
     // Fetch the secret character for this client
