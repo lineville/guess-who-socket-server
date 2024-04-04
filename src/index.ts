@@ -48,6 +48,24 @@ export const main = async (port: number) => {
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
   });
 
+  // Update the player count when a client joins the room
+  io.of("/").adapter.on("join-room", async (gameId: string, _id: string) => {
+    const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+    await io.to(gameId).emit("playerCount", playerCount);
+    console.log(
+      `🟢 Client joined game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+    );
+  });
+
+  // Update the player count when a socket leaves the room
+  io.of("/").adapter.on("leave-room", async (gameId: string, _id: string) => {
+    const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+    await io.to(gameId).emit("playerCount", playerCount);
+    console.log(
+      `🔴 Client left the game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+    );
+  });
+
   io.on("connection", async (socket: Socket) => {
     const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
 
@@ -211,24 +229,6 @@ export const main = async (port: number) => {
       }
     });
 
-    // Update the player count when a client joins the room
-    io.of("/").adapter.on("join-room", async (gameId: string, _id: string) => {
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      await io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🟢 Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}]`
-      );
-    });
-
-    // Update the player count when a socket leaves the room
-    io.of("/").adapter.on("leave-room", async (gameId: string, _id: string) => {
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      await io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🔴 Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}]`
-      );
-    });
-
     // Client disconnects
     socket.on("disconnect", async () => {
       console.log(
@@ -243,8 +243,8 @@ export const initialize = async (
   gameId: string,
   clientId: string,
   games: Map<string, State>,
-  gameType: string = 'pixar',
-  gameMode: string = 'multi-player'
+  gameType: string = "pixar",
+  gameMode: string = "multi-player"
 ): Promise<State> => {
   // Create a new game state if this is the first time this game has been joined
   if (!games.has(gameId)) {
@@ -276,7 +276,6 @@ export const initialize = async (
 
   // TODO: After the game is initialized for the real user, check if it's single player mode
   // if it is then generate a dummy player 2 and assign a secret character to it for the AI to play as
-
 
   return state as State;
 };
