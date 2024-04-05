@@ -6,6 +6,7 @@ import appInsights from "applicationinsights";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Mutex } from "async-mutex";
+import { generateQuestion, generateAnswer, eliminateCharacters } from "./ai";
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -136,6 +137,20 @@ export const main = async (port: number) => {
       console.log(
         `❓ Client asked: ${question} [ClientID: ${clientId}] [GameID: ${gameId}]`
       );
+
+      if (gameMode === "single-player") {
+        const answer = generateAnswer(
+          state.secretCharacters.get("AI")!,
+          question
+        );
+        state.dialogues.push({ content: answer, clientId: "AI" });
+        state.turn = clientId;
+        state.isAsking = true;
+        await socket.emit("answer", answer);
+        console.log(
+          `📣 AI answered: ${answer} [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
+      }
     });
 
     // Handle an incoming answer from the client
@@ -147,6 +162,31 @@ export const main = async (port: number) => {
       console.log(
         `📣 Client answered: ${answer} [ClientID: ${clientId}] [GameID: ${gameId}]`
       );
+
+      if (gameMode === "single-player") {
+        const eliminations = eliminateCharacters(
+          state.characters,
+          state.eliminatedCharacters.get("AI")!,
+          state.dialogues.at(-1)!.content,
+          answer
+        );
+        state.eliminatedCharacters.set(
+          "AI",
+          new Set([...(state.eliminatedCharacters.get("AI") || []), ...eliminations])
+        );
+
+        const question = generateQuestion(
+          state.characters,
+          state.eliminatedCharacters.get("AI")!
+        );
+        state.dialogues.push({ content: question, clientId: "AI" });
+        state.turn = "AI";
+        state.isAsking = false;
+        await socket.emit("ask", question);
+        console.log(
+          `❓ AI asked: ${question} [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
+      }
     });
 
     // Broadcast the count of eliminated to opponent, send the whole set to the client
@@ -272,10 +312,18 @@ export const initialize = async (
     if (!state.eliminatedCharacters.has(clientId)) {
       state.eliminatedCharacters.set(clientId, new Set());
     }
-  }
 
-  // TODO: After the game is initialized for the real user, check if it's single player mode
-  // if it is then generate a dummy player 2 and assign a secret character to it for the AI to play as
+    // Check if the game mode is single-player and initialize AI player
+    if (gameMode === "single-player") {
+      const aiSecretCharacter = generateSecretCharacter("AI", state);
+      state.secretCharacters.set("AI", aiSecretCharacter);
+      state.eliminatedCharacters.set("AI", new Set<number>());
+
+      console.log(
+        `🤖 AI Player initialized for single-player mode [GameID: ${gameId}]`
+      );
+    }
+  }
 
   return state as State;
 };
