@@ -159,13 +159,25 @@ export const main = async (port: number) => {
             remainingCharacters[
               Math.floor(Math.random() * remainingCharacters.length)
             ];
-          state.dialogues.push({
-            content: `Is your character ${randomCharacter}?`,
-            clientId: "AI",
-          });
-          state.turn = clientId;
-          state.isAsking = true;
-          await socket.emit("guess", randomCharacter);
+
+          state.dialogues.push({ content: `Are you ${randomCharacter}?`, clientId: "AI" });
+          const secretCharacter = state.secretCharacters.get(clientId);
+          if (randomCharacter === secretCharacter) {
+            console.log(
+              `🎉 AI guessed ${secretCharacter} correctly! [ClientID: ${clientId}] [GameID: ${gameId}]`
+            );
+            state.winner = "AI";
+            await io.to(gameId).emit("winner", "AI");
+          } else{
+            console.log(
+              `😭 AI guessed ${randomCharacter} incorrectly! [ClientID: ${clientId}] [GameID: ${gameId}]`
+            );
+            state.turn = clientId;
+            state.isAsking = true;
+            await socket.broadcast.to(gameId).emit("bad-guess", randomCharacter);
+            await socket.emit("answer", "No");
+          }
+
         } else {
           const aiQuestion = generateQuestion(
             state.characters,
