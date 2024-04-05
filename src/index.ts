@@ -251,11 +251,26 @@ export const main = async (port: number) => {
         state.isAsking = true;
         await socket.broadcast.to(gameId).emit("bad-guess", guess);
         await socket.emit("answer", "No");
+
+        const aiQuestion = generateQuestion(
+          state.characters,
+          state.eliminatedCharacters.get("AI")!
+        );
+        state.dialogues.push({ content: aiQuestion, clientId: "AI" });
+        state.turn = clientId;
+        state.isAsking = false;
+        await socket.emit("ask", aiQuestion);
+        console.log(
+          `❓ AI asked: ${aiQuestion} [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
       }
     });
 
     socket.on("ready", async () => {
       state.clientsReady.add(clientId);
+      if (gameMode === "single-player") {
+        state.clientsReady.add("AI");
+      }
 
       if (state.clientsReady.size === 1) {
         await socket.broadcast.to(gameId).emit("ready");
