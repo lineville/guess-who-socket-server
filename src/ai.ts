@@ -24,6 +24,13 @@ export const eliminateCharacters = (
   question: string,
   answer: string
 ): Set<number> => {
-  // TODO
-  return new Set();
+  // Pick 5 new characters to eliminate that are not already eliminated
+  const newEliminatedCharacters = new Set<number>();
+  while (newEliminatedCharacters.size < 5) {
+    const index = Math.floor(Math.random() * characters.length);
+    if (!eliminatedCharacters.has(index)) {
+      newEliminatedCharacters.add(index);
+    }
+  }
+  return newEliminatedCharacters;
 };
