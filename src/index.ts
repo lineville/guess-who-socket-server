@@ -6,6 +6,7 @@ import appInsights from "applicationinsights";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Mutex } from "async-mutex";
+import { AIPlayer } from "./ai";
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -274,8 +275,13 @@ export const initialize = async (
     }
   }
 
-  // TODO: After the game is initialized for the real user, check if it's single player mode
-  // if it is then generate a dummy player 2 and assign a secret character to it for the AI to play as
+  // Check if the game mode is single-player and initialize AI player
+  if (gameMode === "single-player") {
+    const aiPlayer = new AIPlayer();
+    state.secretCharacters.set("AI", aiPlayer.selectSecretCharacter(state.characters));
+    state.eliminatedCharacters.set("AI", new Set<number>());
+    console.log(`🤖 AI Player initialized for single-player mode [GameID: ${gameId}]`);
+  }
 
   return state as State;
 };
