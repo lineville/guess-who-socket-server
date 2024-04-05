@@ -6,7 +6,7 @@ import appInsights from "applicationinsights";
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Mutex } from "async-mutex";
-import { generateQuestion, generateAnswer, eliminateCharacters } from "./ai";
+import { generateQuestion, generateAnswer, eliminateCharacters } from "./ai.js";
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
