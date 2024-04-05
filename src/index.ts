@@ -51,18 +51,18 @@ export const main = async (port: number) => {
   // Update the player count when a client joins the room
   io.of("/").adapter.on("join-room", async (gameId: string, _id: string) => {
     const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-    await io.to(gameId).emit("playerCount", playerCount);
+    io.to(gameId).emit("playerCount", playerCount);
     console.log(
-      `🟢 Client joined game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      `🟢 → Client joined game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
     );
   });
 
   // Update the player count when a socket leaves the room
   io.of("/").adapter.on("leave-room", async (gameId: string, _id: string) => {
     const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-    await io.to(gameId).emit("playerCount", playerCount);
+    io.to(gameId).emit("playerCount", playerCount);
     console.log(
-      `🔴 Client left the game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      `🔴 ← Client left the game! [ClientID: ${_id}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
     );
   });
 
@@ -70,7 +70,7 @@ export const main = async (port: number) => {
     const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
 
     console.log(
-      `🟢 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}] [GameType: ${gameType}] [GameMode: ${gameMode}]`
+      `🔌 Client connected! [ClientID: ${clientId}] [GameID: ${gameId}] [GameType: ${gameType}] [GameMode: ${gameMode}]`
     );
 
     // Validate gameId
@@ -232,7 +232,7 @@ export const main = async (port: number) => {
     // Client disconnects
     socket.on("disconnect", async () => {
       console.log(
-        `🔴 Client disconnected! [ClientID: ${clientId}] [GameID: ${gameId}]`
+        `👋 Client disconnected! [ClientID: ${clientId}] [GameID: ${gameId}]`
       );
     });
   });
