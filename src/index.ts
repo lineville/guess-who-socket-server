@@ -144,11 +144,23 @@ export const main = async (port: number) => {
           question
         );
         state.dialogues.push({ content: answer, clientId: "AI" });
-        state.turn = clientId;
-        state.isAsking = true;
         await socket.emit("answer", answer);
         console.log(
           `📣 AI answered: ${answer} [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        
+        const aiQuestion = generateQuestion(
+          state.characters,
+          state.eliminatedCharacters.get("AI")!
+        );
+        state.dialogues.push({ content: aiQuestion, clientId: "AI" });
+        state.turn = clientId;
+        state.isAsking = false;
+        await socket.emit("ask", aiQuestion);
+        console.log(
+          `❓ AI asked: ${aiQuestion} [ClientID: ${clientId}] [GameID: ${gameId}]`
         );
       }
     });
@@ -173,18 +185,6 @@ export const main = async (port: number) => {
         state.eliminatedCharacters.set(
           "AI",
           new Set([...(state.eliminatedCharacters.get("AI") || []), ...eliminations])
-        );
-
-        const question = generateQuestion(
-          state.characters,
-          state.eliminatedCharacters.get("AI")!
-        );
-        state.dialogues.push({ content: question, clientId: "AI" });
-        state.turn = "AI";
-        state.isAsking = false;
-        await socket.emit("ask", question);
-        console.log(
-          `❓ AI asked: ${question} [ClientID: ${clientId}] [GameID: ${gameId}]`
         );
       }
     });
