@@ -151,46 +151,22 @@ export const main = async (port: number) => {
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        if (state.eliminatedCharacters.get("AI")!.size >= NUM_CHARACTERS - 5) {
-          const remainingCharacters = state.characters.filter(
-            (c, i) => !state.eliminatedCharacters.get("AI")!.has(i)
-          );
-          const randomCharacter =
-            remainingCharacters[
-              Math.floor(Math.random() * remainingCharacters.length)
-            ];
+        // TODO handle AI guessing character
+        // if (state.eliminatedCharacters.get("AI")!.size >= NUM_CHARACTERS - 5) {
 
-          state.dialogues.push({ content: `Are you ${randomCharacter}?`, clientId: "AI" });
-          const secretCharacter = state.secretCharacters.get(clientId);
-          if (randomCharacter === secretCharacter) {
-            console.log(
-              `🎉 AI guessed ${secretCharacter} correctly! [ClientID: ${clientId}] [GameID: ${gameId}]`
-            );
-            state.winner = "AI";
-            await io.to(gameId).emit("winner", "AI");
-          } else{
-            console.log(
-              `😭 AI guessed ${randomCharacter} incorrectly! [ClientID: ${clientId}] [GameID: ${gameId}]`
-            );
-            state.turn = clientId;
-            state.isAsking = true;
-            await socket.broadcast.to(gameId).emit("bad-guess", randomCharacter);
-            await socket.emit("answer", "No");
-          }
-
-        } else {
-          const aiQuestion = generateQuestion(
-            state.characters,
-            state.eliminatedCharacters.get("AI")!
-          );
-          state.dialogues.push({ content: aiQuestion, clientId: "AI" });
-          state.turn = clientId;
-          state.isAsking = false;
-          await socket.emit("ask", aiQuestion);
-          console.log(
-            `❓ AI asked: ${aiQuestion} [ClientID: ${clientId}] [GameID: ${gameId}]`
-          );
-        }
+        // } else {
+        const aiQuestion = generateQuestion(
+          state.characters,
+          state.eliminatedCharacters.get("AI")!
+        );
+        state.dialogues.push({ content: aiQuestion, clientId: "AI" });
+        state.turn = clientId;
+        state.isAsking = false;
+        await socket.emit("ask", aiQuestion);
+        console.log(
+          `❓ AI asked: ${aiQuestion} [ClientID: ${clientId}] [GameID: ${gameId}]`
+        );
+        // }
       }
     });
 
@@ -218,7 +194,10 @@ export const main = async (port: number) => {
             ...eliminations,
           ])
         );
-        socket.emit("eliminated-count", state.eliminatedCharacters.get("AI")!.size);
+        socket.emit(
+          "eliminated-count",
+          state.eliminatedCharacters.get("AI")!.size
+        );
       }
     });
 
