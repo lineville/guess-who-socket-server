@@ -206,6 +206,9 @@ export const main = async (port: number) => {
             ...eliminations,
           ])
         );
+        for (const index of eliminations) {
+          await socket.emit("eliminate", index);
+        }
       }
     });
 
