@@ -151,10 +151,9 @@ export const main = async (port: number) => {
 
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // TODO handle AI guessing character
-        // if (state.eliminatedCharacters.get("AI")!.size >= NUM_CHARACTERS - 5) {
+        // TODO handle AI guessing character -- need some proxy for how confident we are it's each of the remaining characters
+        // if one of the characters probability exceeds a certain threshold, guess it
 
-        // } else {
         const aiQuestion = generateQuestion(
           state.characters,
           state.eliminatedCharacters.get("AI")!
@@ -166,7 +165,6 @@ export const main = async (port: number) => {
         console.log(
           `❓ AI asked: ${aiQuestion} [ClientID: ${clientId}] [GameID: ${gameId}]`
         );
-        // }
       }
     });
 
@@ -375,7 +373,7 @@ export const initialize = async (
 const fetchCharacters = async (gameType: string = "pixar") => {
   const url =
     process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
-      ? "https://guess-who-virid.vercel.app"
+      ? "https://guess-who-ai.vercel.app"
       : "http://localhost:3000";
   const response = await fetch(`${url}/api/characters?gameType=${gameType}`);
   const characters = (await response.json()).characters as string[];
