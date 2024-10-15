@@ -373,7 +373,7 @@ export const initialize = async (
 const fetchCharacters = async (gameType: string = "pixar") => {
   const url =
     process.env.NODE_ENV === "production" || process.env.NODE_ENV === "test"
-      ? "https://guess-who-virid.vercel.app"
+      ? "https://guess-who-ai.vercel.app"
       : "http://localhost:3000";
   const response = await fetch(`${url}/api/characters?gameType=${gameType}`);
   const characters = (await response.json()).characters as string[];
