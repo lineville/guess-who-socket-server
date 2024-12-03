@@ -7,6 +7,7 @@ import express from "express";
 import { v4 as uuidv4 } from "uuid";
 import { Mutex } from "async-mutex";
 import { generateQuestion, generateAnswer, eliminateCharacters } from "./ai.js";
+import cors from "cors";
 
 dotenv.config({ path: ".env.local" });
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -27,6 +28,15 @@ export const main = async (port: number) => {
 
   const app = express();
 
+  const corsOptions = {
+    origin: "https://guess-who-ai.vercel.app",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true,
+  };
+
+  app.use(cors(corsOptions));
+
   // Health Check endpoint for availability monitoring
   app.get("/health", (_req, res) => {
     res.status(200).send("OK");
@@ -38,7 +48,10 @@ export const main = async (port: number) => {
       console.log(
         `🚀 Server running on port ${port}\n✨ http://localhost:${port} ✨`
       )
-    )
+    ),
+    {
+      cors: corsOptions,
+    }
   );
 
   const games = new Map<string, State>();
