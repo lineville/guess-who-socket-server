@@ -62,23 +62,33 @@ export const main = async (port: number) => {
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
   });
 
-  // Update the player count when a client joins the room
-  io.of("/").adapter.on("join-room", async (gameId: string, clientId: string) => {
-    const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-    io.to(gameId).emit("playerCount", playerCount);
-    console.log(
-      `🟢 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-    );
-  });
+  io.of("/").adapter.on(
+    "join-room",
+    async (gameId: string, socketId: string) => {
+      const socket = io.sockets.sockets.get(socketId);
+      const clientId = socket?.handshake.query.clientId;
 
-  // Update the player count when a socket leaves the room
-  io.of("/").adapter.on("leave-room", async (gameId: string, clientId: string) => {
-    const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-    io.to(gameId).emit("playerCount", playerCount);
-    console.log(
-      `🔴 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-    );
-  });
+      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+      io.to(gameId).emit("playerCount", playerCount);
+      console.log(
+        `🟢 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      );
+    }
+  );
+
+  io.of("/").adapter.on(
+    "leave-room",
+    async (gameId: string, socketId: string) => {
+      const socket = io.sockets.sockets.get(socketId);
+      const clientId = socket?.handshake.query.clientId;
+
+      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+      io.to(gameId).emit("playerCount", playerCount);
+      console.log(
+        `🔴 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      );
+    }
+  );
 
   io.on("connection", async (socket: Socket) => {
     const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
@@ -110,24 +120,6 @@ export const main = async (port: number) => {
       console.log(`🚨 Invalid gameMode provided [Mode: ${gameMode}]`);
       return;
     }
-
-    socket.on("join-room", async (gameId: string) => {
-      socket.join(gameId);
-      const playerCount = (await io.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🟩 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    });
-  
-    socket.on("leave-room", async (gameId: string) => {
-      socket.leave(gameId);
-      const playerCount = (await io.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🟥 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    });
 
     const room = io.of("/").adapter.rooms.get(gameId);
     if (room && room.size >= 2) {
