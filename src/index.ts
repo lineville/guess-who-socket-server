@@ -62,34 +62,6 @@ export const main = async (port: number) => {
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
   });
 
-  io.of("/").adapter.on(
-    "join-room",
-    async (gameId: string, socketId: string) => {
-      const socket = io.sockets.sockets.get(socketId);
-      const clientId = socket?.handshake.query.clientId;
-
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🟢 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    }
-  );
-
-  io.of("/").adapter.on(
-    "leave-room",
-    async (gameId: string, socketId: string) => {
-      const socket = io.sockets.sockets.get(socketId);
-      const clientId = socket?.handshake.query.clientId;
-
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🔴 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    }
-  );
-
   io.on("connection", async (socket: Socket) => {
     const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
 
@@ -146,6 +118,23 @@ export const main = async (port: number) => {
         ...(state.eliminatedCharacters.get(clientId) || new Set()).keys(),
       ],
     });
+
+    io.of("/").adapter.on("join-room", async () => {
+      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+      io.to(gameId).emit("playerCount", playerCount);
+      console.log(
+        `🟢 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      );
+    });
+
+    io.of("/").adapter.on("leave-room", async () => {
+      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
+      io.to(gameId).emit("playerCount", playerCount);
+      console.log(
+        `🔴 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
+      );
+    });
+
     await socket.to(gameId).emit("turn", state.turn);
 
     // New client connected add them to room
