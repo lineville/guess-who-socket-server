@@ -94,7 +94,7 @@ export const main = async (port: number) => {
     }
 
     // Update the player count when a client joins the room
-    io.of("/").adapter.on("join-room", async (gameId: string) => {
+    io.of("/").adapter.on("join-room", async () => {
       const playerCount = (await io.local.in(gameId).fetchSockets()).length;
       io.to(gameId).emit("playerCount", playerCount);
       console.log(
@@ -103,7 +103,7 @@ export const main = async (port: number) => {
     });
 
     // Update the player count when a socket leaves the room
-    io.of("/").adapter.on("leave-room", async (gameId: string) => {
+    io.of("/").adapter.on("leave-room", async () => {
       const playerCount = (await io.local.in(gameId).fetchSockets()).length;
       io.to(gameId).emit("playerCount", playerCount);
       console.log(
