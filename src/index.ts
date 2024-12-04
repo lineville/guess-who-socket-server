@@ -62,6 +62,28 @@ export const main = async (port: number) => {
     connectionString: process.env.WEBPUBSUB_CONNECTION_STRING as string,
   });
 
+  io.of("/").adapter.on(
+    "leave-room",
+    async (roomId: string, socketId: string) => {
+      const playerCount = (await io.local.in(roomId).fetchSockets()).length;
+      io.to(roomId).emit("playerCount", playerCount);
+      console.log(
+        `🔴 ← Leave Room Event! [SocketID: ${socketId}] [GameID: ${roomId}] [PlayerCount: ${playerCount}]`
+      );
+    }
+  );
+
+  io.of("/").adapter.on(
+    "join-room",
+    async (roomId: string, socketId: string) => {
+      const playerCount = (await io.local.in(roomId).fetchSockets()).length;
+      io.to(roomId).emit("playerCount", playerCount);
+      console.log(
+        `🟢 → Join Room Event! [SocketID: ${socketId}] [GameID: ${roomId}] [PlayerCount: ${playerCount}]`
+      );
+    }
+  );
+
   io.on("connection", async (socket: Socket) => {
     const { gameId, clientId, gameType, gameMode } = socket.handshake.query;
 
@@ -102,6 +124,10 @@ export const main = async (port: number) => {
       return;
     }
 
+    // New client connected add them to room
+    await socket.join(gameId);
+    console.log(`✅ Client joined room! [ClientID: ${clientId}] [GameID: ${gameId}]`);
+
     // Initialize the game state for this socket
     const state = await mutex.runExclusive(async () => {
       return await initialize(gameId, clientId, games, gameType, gameMode);
@@ -119,26 +145,7 @@ export const main = async (port: number) => {
       ],
     });
 
-    io.of("/").adapter.on("join-room", async () => {
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🟢 → Client joined game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    });
-
-    io.of("/").adapter.on("leave-room", async () => {
-      const playerCount = (await io.local.in(gameId).fetchSockets()).length;
-      io.to(gameId).emit("playerCount", playerCount);
-      console.log(
-        `🔴 ← Client left the game! [ClientID: ${clientId}] [GameID: ${gameId}] [PlayerCount: ${playerCount}]`
-      );
-    });
-
     await socket.to(gameId).emit("turn", state.turn);
-
-    // New client connected add them to room
-    await socket.join(gameId);
 
     // Handle an incoming question from the client
     socket.on("ask", async (question: string) => {
